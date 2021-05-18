@@ -29,4 +29,20 @@ router.post('/cart', isAuth, shopController.postCart)
 // @access  Private
 router.post('/cart-delete-item', isAuth, shopController.postCartDeleteProduct)
 
+
+// @route   GET /orders
+// @desc    get all products in orders 
+// @access  Private
+router.get('/orders', isAuth, shopController.getOrders)
+
+// @route   POST /orders
+// @desc    get all products in orders 
+// @access  Private
+router.post('/create-orders', isAuth, shopController.postOrders)
+
+router.get('/order/:orderId', isAuth, shopController.getInvoice)
+
+
+
+
 module.exports = router;
