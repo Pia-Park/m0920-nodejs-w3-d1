@@ -64,36 +64,42 @@ exports.postCartDeleteProduct = (req,res,next) => {
     }).catch(err => console.log(err))
 }
 
-exports.postOrders = (req,res,next) => {
-  req.user.populate('cart.items.productId').execPopulate().then(user => {
-    const products = user.cart.items.map(item => {
-      return {
-        product: {
-          ...item.productId._doc
-        },
-        quantity: item.quantity
-      }
-    })
-    const order = new Order({
-      products: products,
-      user:{
-        username: req.user.username,
-        userId: req.user
-      }
-    })
+exports.postOrder = (req, res, next) => {
+  // console.log('user: ',req.user)
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then(user => {
+      const products = user.cart.items.map(item => {
+        return {
+          product: { ...item.productId._doc },
+          quantity: item.quantity
+        }
+      })
 
-    return order.save()
-  }).then(() => {
-    return req.user.clearCart()
-  }).then(()=>{
-    res.redirect('/orders')
-  }).catch(err => console.log(err))
+      const order = new Order({
+        products: products,
+        user: {
+          email: req.user.email,
+          userId: req.user //mongoose will only pull out the _id
+        }
+      })
+
+      return order.save()
+    })
+    .then(() => {
+      return req.user.clearCart()
+    })
+    .then(() => {
+      res.redirect('/orders')
+    })
+    .catch((err) => console.log(err))
 }
 
-exports.getOrders = (req,res,next) => {
-  Order.find({'user.userId': req.user._id}).then((order) => {
+exports.getOrders = (req, res, next) => {
+  Order.find({ 'user.userId': req.user._id }).then((order) => {
     res.render('shop/orders', {
-      pageTitle: 'Your Orders',
+      pageTitle: 'Your Order',
       path: '/orders',
       orders: order
     })
@@ -103,10 +109,11 @@ exports.getOrders = (req,res,next) => {
 exports.getInvoice = (req,res,next) => {
   const orderId = req.params.orderId
 
-  Order.findById(orderId).then((order)=>{
+  Order.findById(orderId).then((order) => {
     if(!order){
       return res.redirect('/')
     }
+
     if(order.user.userId.toString() !== req.user._id.toString()){
       const error = new Error(err)
       error.httpStatusCode = 401;
@@ -126,15 +133,16 @@ exports.getInvoice = (req,res,next) => {
     pdfDoc.fontSize(26).text('Invoice', {
       underline: true
     })
-
-    pdfDoc.text('-----------------------------')
+    pdfDoc.text('--------------------------------')
     let totalPrice = 0
     order.products.forEach(prod => {
       totalPrice += prod.quantity * prod.product.price
-      pdfDoc.fontSize(14).text(prod.product.title + ' - ' + prod.quantity + ' x ' + ' $' + prod.product.price)
+      pdfDoc.fontSize(14).text(
+        prod.product.title + ' - ' + prod.quantity + ' x ' + ' $' + prod.product.price
+      )
     })
-    pdfDoc.text('-----------------------------')
-    pdfDoc.fontSize(20).text('Total Price: $' + totalPrice)
+    pdfDoc.text('--------------------------------')
+    pdfDoc.fontSize(20).text('Total Price: $'+ totalPrice)
 
     pdfDoc.end()
 

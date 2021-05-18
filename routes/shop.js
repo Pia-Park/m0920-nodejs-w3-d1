@@ -38,7 +38,7 @@ router.get('/orders', isAuth, shopController.getOrders)
 // @route   POST /orders
 // @desc    get all products in orders 
 // @access  Private
-router.post('/create-orders', isAuth, shopController.postOrders)
+router.post('/create-order', isAuth, shopController.postOrder)
 
 router.get('/order/:orderId', isAuth, shopController.getInvoice)
 
