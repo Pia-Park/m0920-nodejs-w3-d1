@@ -29,18 +29,23 @@ router.post('/cart', isAuth, shopController.postCart)
 // @access  Private
 router.post('/cart-delete-item', isAuth, shopController.postCartDeleteProduct)
 
-
 // @route   GET /orders
-// @desc    get all products in orders 
+// @desc    Get all products in orders collection by user id
 // @access  Private
 router.get('/orders', isAuth, shopController.getOrders)
 
 // @route   POST /orders
-// @desc    get all products in orders 
+// @desc    Consolidate all products in cart to orders collection
 // @access  Private
 router.post('/create-order', isAuth, shopController.postOrder)
 
 router.get('/order/:orderId', isAuth, shopController.getInvoice)
+
+router.get('/checkout', isAuth, shopController.getCheckout)
+
+// router.get('/checkout/success', isAuth, shopController.getCheckoutSuccess)
+// router.get('/checkout/cancel', isAuth, shopController.getCheckout)
+
 
 
 

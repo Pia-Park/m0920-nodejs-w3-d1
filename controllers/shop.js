@@ -1,8 +1,10 @@
-const Order = require('../models/Orders')
-const Product = require('../models/Products')
 const fs = require('fs')
 const path = require('path')
 const PDFDocument = require('pdfkit')
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
+const Product = require('../models/Products')
+const Order = require('../models/Orders')
 
 exports.getProducts = (req, res, next) => {
   // const isLoggedIn = req.get('Cookie').split(' ')[2].split('=')[1] === 'true'
@@ -52,16 +54,19 @@ exports.postCart = (req, res, next) => {
       return req.user.addToCart(product)
     })
     .then(() => {
-        res.redirect('/')
+      res.redirect('/')
     })
     .catch((err) => console.log(err))
 }
 
-exports.postCartDeleteProduct = (req,res,next) => {
-    const prodId = req.body.productId
-    req.user.removeFromCart(prodId).then(() => {
-        res.redirect('/cart')
-    }).catch(err => console.log(err))
+exports.postCartDeleteProduct = (req, res, next) => {
+  const prodId = req.body.productId
+  req.user
+    .removeFromCart(prodId)
+    .then(() => {
+      res.redirect('/cart')
+    })
+    .catch((err) => console.log(err))
 }
 
 exports.postOrder = (req, res, next) => {
@@ -104,6 +109,51 @@ exports.getOrders = (req, res, next) => {
       orders: order
     })
   }).catch(err => console.log(err))
+}
+
+exports.getCheckout = (req,res,next) => {
+  let products
+  let total = 0
+  let stripePubKey = process.env.STRIPE_PUB_KEY
+
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then((user) => {
+      products = user.cart.items
+      total = 0
+      products.forEach((prod) => {
+        total += prod.quantity * prod.productId.price
+      })
+
+      return stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: products.map(p => {
+          return {
+            name: p.productId.title,
+            description: p.productId.description,
+            amount: p.productId.price * 100,
+            currency: 'cad',
+            quantity: p.quantity
+          }
+        }),
+        success_url: req.protocol + '://' + req.get('host') + '/checkout/success',
+        cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel',
+      })
+
+    })
+    .then((session) => {
+      res.render('shop/checkout', {
+        pageTitle: 'Checkout',
+        path: '/checkout',
+        products: products,
+        totalSum: total,
+        stripePubKey: stripePubKey,
+        sessionId: session.id
+      })
+    })
+    .catch(err => console.log(err))
+
 }
 
 exports.getInvoice = (req,res,next) => {
